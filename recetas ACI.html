@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetas Tradicionales</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Playfair Display', serif;
+            background-color: #f3f4f6;
+        }
+        h1, h2, h3, .button-style, .input-text, .select-input, .textarea-input {
+            font-family: 'Playfair Display', serif;
+        }
+        .input-text, .select-input, .textarea-input, .button-style {
+            border: 1px solid #0A1B4B;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            width: 100%;
+            transition: all 0.2s ease-in-out;
+            background-color: #ffffff;
+            color: #0A1B4B;
+        }
+        .input-text:focus, .select-input:focus, .textarea-input:focus {
+            border-color: #0A1B4B;
+            box-shadow: 0 0 0 3px rgba(10, 27, 75, 0.2);
+            outline: none;
+        }
+        .button-style:hover {
+            background-color: #0A1B4B;
+            color: #ffffff;
+        }
+        .text-shadow-bold {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+        .recipe-title-bg {
+            background-color: #D9F99D;
+            color: #4B5563;
+            font-weight: 700;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            display: inline-block;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            position: relative;
+        }
+        .tag {
+            background-color: #e5e7eb;
+            color: #6b7280;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            display: inline-block;
+            margin-top: 0.5rem;
+            margin-right: 0.25rem;
+        }
+        #recipe-detail-view .bg-white {
+            background-color: #D9F99D;
+            color: #4B5563;
+        }
+        .modal-header-bg {
+            background-color: #D9F99D;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem 0.5rem 0 0;
+            font-family: 'Playfair Display', serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div id="app" class="bg-white shadow-xl rounded-xl p-8 max-w-2xl w-full">
+        <!-- Encabezado de la aplicación -->
+        <header class="mb-6 text-center">
+            <h1 class="text-4xl font-normal text-gray-900" style="color:#0A1B4B;">Recetas Tradicionales</h1>
+            <p class="text-gray-500 mt-2 text-sm">por Ana Carbajo Iñigo</p>
+        </header>
+
+        <!-- Contenedor para la vista de la lista de recetas -->
+        <div id="recipe-list-view">
+            <!-- Barra de búsqueda, filtro y botón para añadir receta -->
+            <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="text" id="search-input" placeholder="Buscar por nombre o ingrediente..." class="input-text col-span-2">
+                <select id="sort-select" class="select-input">
+                    <option value="default">Clasificar por...</option>
+                    <option value="name-asc">Nombre (A-Z)</option>
+                    <option value="name-desc">Nombre (Z-A)</option>
+                    <option value="favorites">Solo favoritos</option>
+                    <option value="tags">Filtrar por Etiquetas</option>
+                </select>
+                <button id="add-recipe-button" class="button-style font-semibold py-2 px-4 rounded-md col-span-1 md:col-span-3">Añadir Nueva Receta</button>
+            </div>
+            <div id="tag-filter-container" class="mb-4 hidden">
+                <select id="tag-filter-select" class="select-input">
+                    <option value="">Todas las Etiquetas</option>
+                    <option value="desayuno">Desayuno</option>
+                    <option value="comida">Comida</option>
+                    <option value="cena">Cena</option>
+                    <option value="niños">Niños</option>
+                    <option value="picoteo">Picoteo</option>
+                    <option value="merienda">Merienda</option>
+                </select>
+            </div>
+            <button id="weekly-menu-button" class="button-style w-full font-semibold py-2 px-4 rounded-md transition-colors duration-300 mt-4">
+                Generar Menú Semanal
+            </button>
+            
+            <!-- Lista de recetas -->
+            <div id="recipes-container" class="grid gap-4 mt-6">
+                <!-- Las tarjetas de recetas se insertarán aquí dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Contenedor para la vista del formulario para añadir nueva receta -->
+        <div id="add-recipe-view" class="hidden">
+            <h2 class="text-3xl font-semibold text-gray-800 mb-4">Añadir Nueva Receta</h2>
+            <div class="mb-4 space-y-2">
+                <input type="url" id="recipe-url-input" class="input-text" placeholder="Pega aquí la URL de la receta...">
+                <button type="button" id="fetch-recipe-button" class="button-style w-full font-semibold py-2 px-4 rounded-md transition-colors duration-300">
+                    Añadir desde URL
+                </button>
+            </div>
+            <form id="add-recipe-form" class="space-y-4">
+                <div>
+                    <label for="recipe-name-input" class="block text-gray-700 font-medium mb-1">Nombre de la Receta</label>
+                    <input type="text" id="recipe-name-input" class="input-text" required>
+                </div>
+                <div>
+                    <label for="recipe-time-input" class="block text-gray-700 font-medium mb-1">Tiempo de Preparación (ej: "30 minutos")</label>
+                    <input type="text" id="recipe-time-input" class="input-text">
+                </div>
+                <div>
+                    <label for="recipe-ingredients-input" class="block text-gray-700 font-medium mb-1">Ingredientes (uno por línea)</label>
+                    <textarea id="recipe-ingredients-input" class="textarea-input h-24" required></textarea>
+                </div>
+                <div>
+                    <label for="recipe-preparation-input" class="block text-gray-700 font-medium mb-1">Preparación (pasos, uno por línea)</label>
+                    <textarea id="recipe-preparation-input" class="textarea-input h-32" required></textarea>
+                </div>
+                <div>
+                    <label for="recipe-tags-input" class="block text-gray-700 font-medium mb-1">Etiquetas (separadas por comas)</label>
+                    <input type="text" id="recipe-tags-input" class="input-text" placeholder="ej: comida, cena, vegano">
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="cancel-add-button" class="button-style font-semibold py-2 px-4 rounded-md transition-colors duration-300">Cancelar</button>
+                    <button type="submit" class="button-style font-semibold py-2 px-4 rounded-md transition-colors duration-300">Guardar Receta</button>
+                </div>
+            </form>
+        </div>
+
+
+        <!-- Contenedor para la vista de los detalles de una receta -->
+        <div id="recipe-detail-view" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button id="back-button" class="flex items-center button-style text-blue-600 hover:text-blue-800 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    Volver al listado
+                </button>
+                <button id="favorite-button" class="text-gray-400 hover:text-yellow-500 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                </button>
+            </div>
+            <h2 id="recipe-title" class="text-3xl font-semibold text-gray-800 mb-4"></h2>
+            <img id="recipe-image" src="" alt="Imagen de la receta" class="w-full h-auto rounded-lg shadow-md mb-6 object-cover">
+            
+            <div class="flex space-x-4 mb-6">
+                <button id="shopping-list-button" class="button-style flex-1 font-semibold py-2 px-4 rounded-md transition-colors duration-300">
+                    Generar Lista de Compra
+                </button>
+                <button id="variations-button" class="button-style flex-1 font-semibold py-2 px-4 rounded-md transition-colors duration-300">
+                    Sugerir Variaciones
+                </button>
+            </div>
+            <button id="nutritional-button" class="button-style w-full font-semibold py-2 px-4 rounded-md transition-colors duration-300 mt-4">
+                Estimar Valor Nutricional
+            </button>
+            <a id="original-link-button" href="#" target="_blank" class="w-full text-center block button-style font-semibold py-2 px-4 rounded-md transition-colors duration-300 mt-4">Ver Receta Original</a>
+            <button id="email-button" class="button-style w-full font-semibold py-2 px-4 rounded-md transition-colors duration-300 mt-4">
+                Enviar por Email
+            </button>
+
+            <div class="space-y-6 mt-6">
+                <!-- Ingredientes -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-700 mb-2">Ingredientes</h3>
+                    <ul id="recipe-ingredients" class="list-disc list-inside text-gray-600 space-y-1"></ul>
+                </div>
+                <!-- Preparación -->
+                <div>
+                    <h3 class="text-xl font-bold text-gray-700 mb-2">Preparación</h3>
+                    <ol id="recipe-preparation" class="list-decimal list-inside text-gray-600 space-y-1"></ol>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para mostrar los resultados de la IA -->
+    <div id="modal-container" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center modal-header-bg">
+                <h3 id="modal-title" class="text-2xl font-bold"></h3>
+                <button id="close-modal-button" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="modal-content-inner" class="p-4">
+                <!-- Contenido dinámico para la lista de compra, variaciones, o menú semanal -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de las recetas extraídos del documento adjunto
+        const rawText = `RECETA ejemplo 
+RECETATortitas de fresa y vainilla
+
+[Image 1]
+
+
+Tiempo de preparación:  20 minutos
+Ingredientes para  8 personas
+280 calorías  
+
+Ingredientes
+Escribe aquí tu texto
+Escribe aquí tu texto
+Escribe aquí tu texto
+Escribe aquí tu texto
+Preparación
+Escribe aquí tu texto.  Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto. 
+Escribe aquí tu texto.  Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto. 
+Escribe aquí tu texto.  Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto.
+Escribe aquí tu texto.  Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto.
+Escribe aquí tu texto.  Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto.
+Escribe aquí tu texto.  Escribe aquí tu texto Escribe aquí tu texto.
+Consejos
+Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto Escribe aquí tu texto. 
+Receta: Pollo con tomate 
+Enlace original:  https://elpais.com/gastronomia/el-comidista/2025-05-27/pollo-con-tomate-una-receta-de-siempre-que-sigue-cumpliendo.html
+Etiquetas: comida, cena, niños
+Tiempo de preparación:  No especificado
+Ingredientes:  Para 4 personas:
+4 muslos y 4 contramuslos de pollo
+500 g de tomate triturado
+1 cebolla
+1 pimiento verde
+2 o 3 dientes de ajo
+100 ml de vermut blanco o vino dulce
+100 ml de caldo de pollo (o agua)
+1 cucharadita de pimentón dulce
+1 hoja de laurel
+Aceite de oliva
+2 guindillas rojas secas (opcional)
+Preparación:
+Quita la piel al pollo y dórala en una cazuela con un poco de aceite. Reserva la piel.
+Sala el pollo y dóralo en la cazuela. Retira el pollo y resérvalo.
+Añade el ajo y el pimiento a la cazuela, y deja que se pochen.
+Incorpora el tomate triturado, el laurel, el pollo y el caldo. Cocina a fuego suave durante unos 40 minutos.
+Comprueba que el pollo esté hecho y, si la salsa está líquida, redúcela.
+Consejos:  Se puede cambiar el vino por mosto o un vinagre suave con un poco de miel si el plato es para niños, embarazadas o personas que no puedan tomar alcohol.
+
+
+Receta: Ensalada campera 
+Enlace original:  https://www.directoalpaladar.com/recetas-de-ensaladas/ensalada-campera-receta-facil-imprescindible-para-verano
+Etiquetas: comida, picoteo, vegetariano
+Tiempo de preparación:  20-30 minutos para cocer las patatas
+Ingredientes:
+800 g de patatas
+150 g de cebolla dulce
+50 ml de aceite de oliva virgen extra
+15 ml de vinagre de vino
+Sal gruesa al gusto
+Opcionales: aceitunas, huevos cocidos, atún en conserva
+Preparación:
+Lava las patatas y cuécelas enteras en agua hirviendo.
+Pela y corta la cebolla en dados pequeños.
+Una vez cocidas las patatas, déjalas atemperar un poco y pélalas. Córtalas en trozos.
+Añade sal, aceite de oliva y remueve bien.
+Incorpora la cebolla, el vinagre y el perejil. Si lo deseas, añade los ingredientes opcionales.
+
+
+Receta: Albóndigas con salsa de curry 
+Enlace original:  https://www.foodtropia.es/post/alb%C3%B3ndigas-con-salsa-de-curry
+Etiquetas: comida, cena
+Tiempo de preparación:  No especificado
+Ingredientes:  Para unas 30 albóndigas:
+Para las albóndigas:  500 g de carne picada de pavo, 2 manzanas ralladas, pan rallado o avena triturada para dar consistencia, 1 diente de ajo, perejil picado, 1 huevo.
+Para la salsa:  1 cebolla grande, 1 lata de leche de coco (400 ml), 1 vaso de caldo de pollo o verduras, curry en polvo, sal y pimienta.
+Preparación:
+Ralla la manzana, pica el perejil y el ajo, y mézclalo todo con el resto de ingredientes de las albóndigas hasta conseguir una buena consistencia.
+Forma las albóndigas y márcalas en una cazuela. Retíralas y resérvalas.
+En la misma cazuela, dora la cebolla picada con aceite y sal. Opcionalmente, añade curry en polvo.
+Vierte la leche de coco y el caldo. Cocina a fuego medio durante 10 minutos para que la salsa se reduzca.
+Añade sal y pimienta, y cocina las albóndigas en la salsa durante 5-10 minutos a fuego bajo.
+
+Receta: Bacalao con tomate 
+Enlace original:  https://www.abc.es/recetasderechupete/receta-de-bacalao-con-tomate/16218/
+Etiquetas: comida, cena
+Tiempo de preparación:  No especificado
+Ingredientes:
+Lomos de bacalao desalado
+Tomate triturado
+Cebolla, ajo, pimiento rojo
+Aceite de oliva, sal, pimienta, azúcar
+Preparación:
+Sofríe las verduras picadas en aceite.
+Añade el tomate triturado, sal, azúcar y pimienta, y cocina la salsa.
+Incorpora los lomos de bacalao y cocina hasta que estén listos.
+
+Receta: Potaje de vigilia 
+Enlace original:  https://www.abc.es/recetasderechupete/potaje-de-vigilia-con-garbanzos-espinacas-y-bacalao/9609/  o   https://www.directoalpaladar.com/recetas-de-legumbres-y-verduras/potaje-de-vigilia-receta-tradicional-de-cuaresma-y-semana-santa
+Etiquetas: comida, vegetariano, vegano
+Tiempo de preparación:  No especificado
+Ingredientes:  Garbanzos, bacalao desalado, espinacas, cebolla, ajo, pimentón dulce, comino, laurel, aceite de oliva y caldo de verduras.
+Preparación:
+Cuece los garbanzos previamente remojados.
+Prepara un sofrito con cebolla, ajo y pimentón.
+Añade las espinacas, los garbanzos y el bacalao a la olla, junto con el caldo.
+Cocina todo junto hasta que el bacalao esté tierno y el potaje tenga la consistencia deseada.
+
+Receta: Tarta de galletas con chocolate 
+Enlace original:  https://elpais.com/gastronomia/el-comidista/2013/09/03/articulo/1378184220_137818.html
+Etiquetas: picoteo, postre, merienda, niños
+Tiempo de preparación:  No especificado
+Ingredientes:  Galletas, chocolate, mantequilla, leche y azúcar.
+Preparación:
+Prepara una crema de chocolate fundiendo el chocolate con la mantequilla y la leche.
+Monta la tarta alternando capas de galletas mojadas en leche y la crema de chocolate.
+Refrigera hasta que la tarta se enfríe y solidifique.
+
+Receta: Quiche de calabacín (Thermomix)
+Enlace original:  https://www.velocidadcuchara.com/quiche-de-calabacin-thermomix/
+Etiquetas: comida, cena, vegetariano
+Tiempo de preparación :  No especificado
+Ingredientes:  Masa quebrada, calabacín, cebolla, huevos, nata líquida, queso rallado, sal y pimienta.
+Preparación: 
+Sofríe el calabacín y la cebolla en la Thermomix.
+Extiende la masa en un molde.
+Vierte sobre la masa el sofrito, la nata y el huevo batido con sal y pimienta.
+Espolvorea con queso rallado y hornea.
+
+Receta: Cuartos traseros de pollo con patata y manzana 
+Enlace original:  https://www.foodtropia.es/post/cuartos-traseros-de-pollo-con-patata-y-manzana
+Etiquetas: comida, cena, niños
+Tiempo de preparación :  No especificado
+Ingredientes:  2 cuartos traseros de pollo ecológico, 1 cebolla, 1 manzana, 3 patatas, 200 ml de caldo de verduras o pollo, perejil fresco, 2 dientes de ajo, 1 limón, aceite de oliva virgen extra, sal y pimienta.
+Preparación: 
+Salpimenta el pollo y dóralo en una cazuela con un poco de aceite. Reserva.
+Sofríe la cebolla, la manzana y las patatas.
+Incorpora el pollo y el ajo, y rocía con zumo de limón y el vino. Deja que se evapore el alcohol.
+Agrega el caldo de pollo, el laurel y el perejil. Cocina tapado durante 25 minutos.
+Destapa la cazuela, reduce la salsa y sirve.
+
+Receta: Lasaña (Velocidad Cuchara) 
+Enlace original:   https://www.velocidadcuchara.com/lasana/
+Etiquetas: comida, cena, niños
+Tiempo de preparación:  No especificado
+Ingredientes:  Placas de lasaña, queso para gratinar, carne picada (500 g), aceite de oliva, zanahoria (200 g), cebolla (150 g), champiñones (150 g), ajo, pimiento rojo y verde (80 g), tomate natural triturado (500 g), sal, pimienta y orégano, leche (500 g), maicena (50 g), mantequilla (20 g), queso en lonchas.
+Preparación:
+Pon las placas de lasaña en remojo con agua caliente.
+En el vaso de la Thermomix, tritura las verduras para el sofrito (zanahoria, cebolla, champiñones, ajo, pimientos). Sofríe.
+Añade la carne picada y el tomate triturado, y cocina.
+Prepara la bechamel en el vaso de la Thermomix con leche, maicena, mantequilla y queso.
+Monta las capas de lasaña en una fuente, alternando pasta, la carne y bechamel.
+Cubre con queso para gratinar y hornea.
+
+Receta: Contramuslos de pollo al horno 
+Enlace original:  https://webosfritos.es/contramuslos-de-pollo-al-horno/
+Etiquetas: comida, cena
+Tiempo de preparación:  Unos tres cuartos de hora de cocción.
+Ingredientes:  1 kg de contramuslos de pollo, sal, pimienta, 8 o 10 cebollitas, 2 zanahorias tiernas, 2 hojas de laurel, tomillo, 3 dientes de ajo, aceite de oliva virgen extra, 200 g de vino blanco, 300 g de agua.
+Preparación: 
+Sofríe el pollo en una cazuela.
+Prepara una base con las cebollitas, las zanahorias, el ajo y las hierbas.
+Coloca el pollo frito sobre la base de verduras.
+Añade el vino y el agua, y cocina a fuego lento hasta que los contramuslos estén hechos.
+
+Receta: Empanadas argentinas de carne 
+Enlace original:  https://www.hola.com/cocina/recetas/20221020219470/empanadas-argentinas-carne-receta/
+Etiquetas: comida, picoteo
+Tiempo de preparación:  Unos 40 minutos de cocción del relleno.
+Ingredientes:  10 discos de masa para empanada, 500 g de carne picada de vacuno, 400 g de cebolla, pimiento rojo y verde (50 g de cada uno), ajo, laurel, ají molido, pimentón de la Vera, aceite de oliva, 2 huevos cocidos, 40 g de aceitunas verdes.
+Preparación: 
+Rehoga la cebolla, el ajo y los pimientos.
+Añade el pimentón y la carne picada, y cocina bien. Incorpora orégano, ají molido y laurel.
+Deja enfriar el relleno. Añade las aceitunas y el huevo duro picados.
+Rellena los discos de masa, sella los bordes y hornea a 200-210°C durante unos 7-8 minutos.
+ 
+Receta: Contramuslos de pollo de corral a la cerveza 
+Enlace original:  https://www.foodtropia.es/post/contramuslos-de-pollo-de-corral-a-la-cerveza
+Etiquetas: comida, cena
+Tiempo de preparación:  1 hora de horneado.
+Ingredientes:  2 contramuslos de pollo de corral, 2 botellas de 33 cl de cerveza, 2 boniatos troceados, 1 cebolla troceada, patatitas, hierbas provenzales, aceite de oliva virgen extra, sal y pimienta.
+Preparación: 
+Pela y trocea la cebolla, el boniato y las patatas.
+Coloca todo en una fuente de horno junto con el pollo.
+Aliña con aceite de oliva, cerveza, sal, pimienta y hierbas provenzales.
+Hornea durante 1 hora a 200 grados.
+
+Receta: Lasaña de calabacín rellena de boloñesa con verduras 
+Enlace original:  https://cookpad.com/es/recetas/8827153-lasana-de-calabacin-rellena-de-bolonesa-con-verduras  o   https://www.foodtropia.es/post/lasa%C3%B1a-de-calabac%C3%ADn-y-ternera
+Etiquetas: comida, cena, vegetariano
+Tiempo de preparación:  No especificado
+Ingredientes:  Calabacín, carne picada, cebolla, pimiento, zanahoria, tomate triturado, queso rallado, aceite de oliva, sal y pimienta.
+Preparación: 
+Lamina el calabacín.
+Prepara la boloñesa sofriendo las verduras, la carne picada y el tomate.
+En un molde, monta capas alternas de calabacín y boloñesa.
+Cubre con queso rallado y hornea hasta que se gratine.
+
+Receta: Calamares guisados con patatas 
+Enlace original:  https://www.velocidadcuchara.com/calamares-guisados-con-patatas/
+Etiquetas: comida, cena
+Tiempo de preparación:  20-25 minutos de cocción de las patatas.
+Ingredientes:  250 g de cebolla, 40 g de aceite de oliva, 600-700 g de calamares, 50-80 g de tomate triturado, 1 cucharadita de pimentón dulce o picante, 1-2 hojas de laurel, 500-600 g de patatas, 40 g de vino blanco, 250 g de caldo de pescado o agua con sal.
+Preparación: 
+Sofríe la cebolla y el ajo.
+Limpia y corta los calamares, y añádelos al sofrito.
+Incorpora el tomate y las patatas chascadas.
+Vierte el vino y el caldo, y cocina a fuego lento hasta que las patatas estén tiernas.
+
+Receta: Merluza a la florentina (Thermomix) 
+Enlace original:  https://www.velocidadcuchara.com/merluza-a-la-florentina-con-thermomix/ 
+Etiquetas: comida, cena
+Tiempo de preparación:  No especificado
+Ingredientes:  Filetes de merluza, espinacas frescas, bechamel, queso rallado, aceite, sal y nuez moscada.
+Preparación: 
+Prepara la bechamel.
+Sofríe las espinacas con ajo y cebolla.
+Coloca los filetes de merluza en una fuente.
+Cubre con la bechamel, espolvorea queso y gratina en el horno.
+
+Receta: Lentejas estofadas 
+Enlace original:   https://www.velocidadcuchara.com/lentejas-estofadas/
+Etiquetas: comida, cena, vegano, vegetariano
+Tiempo de preparación:  De 30 a 35 minutos de cocción.
+Ingredientes:  350 g de lentejas pardinas (remojadas), 100 g de pimiento verde, 100 g de zanahoria, 100 g de patata, 100 g de cebolla, 1 chorizo (opcional), pimentón, 50 g de aceite de oliva, sal, 2 dientes de ajo, 1 hoja de laurel.
+Preparación: 
+Prepara un sofrito con el aceite, la cebolla, el ajo y el pimiento.
+En la olla, vierte las lentejas lavadas y escurridas con el resto de los ingredientes picados, finalizando con el agua.
+Cocina a fuego lento hasta que las lentejas estén blandas.
+
+Receta: Arroz con sepia 
+Enlace original:  https://www.juanideanasevilla.com/2012/05/arroz-con-sepia.html
+Etiquetas: comida, cena
+Tiempo de preparación:  25 minutos de cocción de la sepia, 14 minutos para el arroz.
+Ingredientes:  Una sepia de unos 500 g, 3 dientes de ajo, 150 g de cebolla, arroz, 750 g de caldo de pescado, sal y colorante o azafrán.
+Preparación: 
+En la Thermomix, pica la cebolla, el ajo, el pimiento y el tomate.
+Sofríe las verduras.
+Añade la sepia en cuadraditos, azafrán, perejil y sal. Cocina.
+Agrega el arroz y el caldo caliente, y cocina hasta que el arroz esté listo.
+
+Receta: Marmitako de atún 
+Enlace original:  https://www.velocidadcuchara.com/marmitako-de-atun/  o   https://www.hogarmania.com/cocina/recetas/pescados-mariscos/marmitako-atun-8664.html
+Etiquetas: comida, cena
+Tiempo de preparación:  25 minutos de cocción de las patatas.
+Ingredientes:  800 g de patatas, 300 g de atún, 100 g de pimiento verde, 150 g de cebolla, 100 g de tomate triturado, 2 dientes de ajo, pimentón dulce, sal, zanahoria (opcional) y 500 g de agua o caldo.
+Preparación: 
+En el vaso de la Thermomix, pica la cebolla, el ajo, los pimientos y el tomate. Sofríe.
+Añade el pimentón, las patatas chascadas y el caldo. Cocina hasta que las patatas estén tiernas.
+Agrega el atún cortado en dados y cocina unos 3 minutos.
+
+Receta: Berenjenas rellenas de atún (Thermomix) 
+Enlace original:  https://cookpad.com/es/recetas/2893399-berenjenas-rellenas-de-atun-thermomix
+Etiquetas: comida, cena
+Tiempo de preparación:  No especificado
+Ingredientes:  2 berenjenas, 150 g de cebolla, 200 g de tomate, 120 g de atún en aceite, aceite de oliva, sal, azúcar, albahaca y lonchas de queso.
+Preparación: 
+Corta las berenjenas por la mitad y vacía la pulpa.
+Sofríe en la Thermomix el ajo y la cebolla.
+Añade la pulpa de la berenjena y el tomate triturado, sal, azúcar, albahaca y pimienta.
+Incorpora el atún escurrido y mezcla.
+Rellena las berenjenas, cúbrelas con queso y gratina en el horno.
+
+Receta: Pastel de berenjenas, mozzarella y tomate 
+Enlace original:  https://elcomidista.pais.com/elcomidista/2012/11/15/receta/1352959200_135295.html
+Etiquetas: comida, cena, vegetariano
+Tiempo de preparación:  No especificado
+Ingredientes:  2 berenjenas, 1 cebolla, 250 g de mozzarella, 3 huevos, 200 ml de nata, aceite de oliva, nuez moscada, pimienta y sal.
+Preparación: 
+Corta las berenjenas y fríelas.
+En un molde, monta capas de las berenjenas, la cebolla pochada, la mozzarella y una mezcla de huevos y nata.
+Hornea hasta que el pastel esté cuajado y dorado.
+
+Receta: Minestrone de otoño 
+Enlace original:   https://www.beingbiotiful.com/minestrone-otono/
+Etiquetas: comida, cena, vegano, vegetariano
+Tiempo de preparación:  30 minutos de cocción.
+Ingredientes:  Panceta picada (opcional), cebolla, zanahorias, apio, agua, tomates en cubitos, frijoles (alubias) kidney y cannellini, caldo de pollo granulado, macarrones secos, judías verdes.
+Preparación: 
+Sofríe la cebolla, la zanahoria, el apio y la panceta (si se usa).
+Añade el agua, los tomates, los frijoles y el caldo. Cocina hasta que las verduras estén tiernas.
+Incorpora la pasta y las judías verdes, y cocina hasta que la pasta esté al dente.
+
+Receta: Contramuslos de pollo con calabacín y salsa de limón 
+Enlace original:  https://www.foodtropia.es/post/contramuslos-de-pollo-con-calabac%C3%ADn-y-salsa-de-lim%C3%B3n
+Etiquetas: comida, cena
+Tiempo de preparación:  Al menos 30 minutos de cocción a fuego suave, y 15 minutos de reducción de la salsa.
+Ingredientes:  4 contramuslos de pollo, 2 dientes de ajo, 1 cebolla grande, zumo de 1 limón, 100 ml de vino blanco, 300 ml de caldo de pollo o verduras, 1 cucharada sopera de miel, 1 cucharadita de mostaza, perejil fresco, aceite de oliva, sal y pimienta.
+Preparación: 
+Salpimenta los contramuslos y dóralos. Reserva.
+En la misma cazuela, dora el ajo y la cebolla cortada en tiras.
+Vuelve a incorporar el pollo, añade el vino y el zumo de limón. Deja que se evapore el alcohol.
+Añade el caldo y el perejil, y cocina tapado durante al menos media hora.
+Destapa, añade la miel y la mostaza, y cocina destapado para que la salsa reduzca.
+
+Receta: Pollo a la naranja 
+Enlace original:   https://www.foodtropia.es/post/pollo-a-la-naranja
+Etiquetas: comida, cena, niños
+Tiempo de preparación:  15 minutos.
+Ingredientes:  3 pechugas de pollo, 150 ml de zumo de naranja, ralladura de 1 naranja, romero fresco picado, 1 cucharada de mostaza a la antigua, 2 cucharadas de salsa de soja, 1/2 cebolla picada, aceite de oliva, sal y pimienta.
+Preparación: 
+Salpimenta las pechugas de pollo y márcalas en una sartén con aceite.
+En la misma cazuela, sofríe la cebolla y luego reserva.
+Prepara una salsa mezclando el zumo de naranja, la ralladura, el romero, la mostaza y la salsa de soja.
+Vuelve a añadir la cebolla a la sartén con el pollo, y luego la salsa.
+Cocina durante 15 minutos a fuego lento.
+
+Receta: Albóndigas caseras en salsa de tomate (Velocidad Cuchara) 
+Enlace original:  https://www.velocidadcuchara.com/albondigas-caseras-en-salsa-de-tomate/
+Etiquetas: comida, cena, niños
+Tiempo de preparación:  No especificado
+Ingredientes: 
+Para las albóndigas:  2 huevos, 70 g de leche, 2 cucharadas de vino blanco, 1 diente de ajo picado, 2 cucharadas de pan rallado, 850 g de carne de ternera, perejil picado, sal y pimienta.
+Para la salsa:  1 cebolla, 50 g de aceite de oliva, 2 latas de 800 g de tomates pelados, orégano o perejil.
+Preparación: 
+Prepara la masa de las albóndigas mezclando todos los ingredientes. Deja reposar 15 minutos.
+Forma las albóndigas.
+Prepara la salsa de tomate sofriendo la cebolla y añadiendo el tomate triturado.
+Cocina las albóndigas en la salsa hasta que estén hechas.
+
+Receta: Arroz meloso con merluza, trigueros y gambones
+Enlace original: https://www.foodtropia.es/post/arroz-meloso-con-merluza-trigueros-y-gambones
+Etiquetas: comida, cena
+Tiempo de preparación:  45 minutos
+Ingredientes: 4 lomos de merluza, 200 gr de gambones, 150 gr de trigueros, 1 cebolla, 2 dientes de ajo, 1 pimiento verde, 400 gr de arroz bomba, 100 ml de vino blanco, 1l de caldo de pescado, aceite de oliva, sal y perejil.
+Preparación:
+Sofríe el ajo y la cebolla picados en una cazuela con aceite.
+Añade el pimiento verde y los trigueros troceados.
+Incorpora el arroz, el vino blanco y el caldo de pescado.
+Añade la merluza y los gambones, y cocina a fuego medio hasta que el arroz esté listo y meloso.
+
+Pestaña 5 
+Página de la Pestaña Superior
+El contenido de esta página se incluirá desde la pestaña superior.
+
+File 
+Pestaña 4 
+`;
+
+        // Datos de las recetas extraídos del documento adjunto
+        const recipeImages = {
+            'Pollo con tomate': 'https://plus.unsplash.com/premium_photo-1675765790472-e1d556e43f55?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Ensalada campera': 'https://images.unsplash.com/photo-1546413247-f49557451006?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Albóndigas con salsa de curry': 'https://images.unsplash.com/photo-1667084535359-5c4e43e26401?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Bacalao con tomate': 'https://images.unsplash.com/photo-1583091916327-0c0b11566432?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Potaje de vigilia': 'https://images.unsplash.com/photo-1579226190623-e5d33b49914c?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Tarta de galletas con chocolate': 'https://images.unsplash.com/photo-1551028150-64b9f398f686?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Quiche de calabacín (Thermomix)': 'https://images.unsplash.com/photo-1623912628461-1e96a40b3c29?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Cuartos traseros de pollo con patata y manzana': 'https://images.unsplash.com/photo-1582121303258-2950587d46c4?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Lasaña (Velocidad Cuchara)': 'https://images.unsplash.com/photo-1619073176664-539c27702f43?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Contramuslos de pollo al horno': 'https://images.unsplash.com/photo-1628283319800-474c10640f09?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Empanadas argentinas de carne': 'https://images.unsplash.com/photo-1599380840502-315183db7288?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Contramuslos de pollo de corral a la cerveza': 'https://images.unsplash.com/photo-1579226190623-e5d33b49914c?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Lasaña de calabacín rellena de boloñesa con verduras': 'https://images.unsplash.com/photo-1619073176664-539c27702f43?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Calamares guisados con patatas': 'https://images.unsplash.com/photo-1619445989725-78c56e297a76?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Merluza a la florentina (Thermomix)': 'https://images.unsplash.com/photo-1628283319800-474c10640f09?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Lentejas estofadas': 'https://images.unsplash.com/photo-1558509874-93c660f7082f?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Arroz con sepia': 'https://images.unsplash.com/photo-1550974997-7176466f2127?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Marmitako de atún': 'https://images.unsplash.com/photo-1634861250269-a9a3b2b8004e?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Berenjenas rellenas de atún (Thermomix)': 'https://images.unsplash.com/photo-1620023608149-14a51e6b3c43?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Pastel de berenjenas, mozzarella y tomate': 'https://images.unsplash.com/photo-1639011740924-f726715b7415?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Minestrone de otoño': 'https://images.unsplash.com/photo-1582236894086-4e5025a1768e?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Contramuslos de pollo con calabacín y salsa de limón': 'https://images.unsplash.com/photo-1546954209-66c5c82c2b3d?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Pollo a la naranja': 'https://images.unsplash.com/photo-1601007238711-2e557b76a6b5?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Albóndigas caseras en salsa de tomate (Velocidad Cuchara)': 'https://images.unsplash.com/photo-1583091916327-0c0b11566432?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            'Arroz meloso con merluza, trigueros y gambones': 'https://images.unsplash.com/photo-1621876408104-e0e64f7b6051?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+        };
+
+
+        // Analiza el texto para extraer las recetas y estructurarlas en un array de objetos
+        const parseRecipes = (text) => {
+            const recipes = [];
+            const recipeBlocks = text.split('Receta: ').slice(1);
+            
+            recipeBlocks.forEach(block => {
+                const lines = block.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+                const recipe = {
+                    name: lines[0],
+                    time: '',
+                    ingredients: [],
+                    preparation: [],
+                    tags: [],
+                    link: '',
+                    image: recipeImages[lines[0]] || 'https://placehold.co/600x400/94A3B8/FFFFFF?text=Nueva+Receta'
+                };
+                
+                let currentSection = '';
+
+                for (const line of lines) {
+                    if (line.startsWith('Tiempo de preparación:')) {
+                        recipe.time = line.replace('Tiempo de preparación:', '').trim();
+                        currentSection = '';
+                    } else if (line.startsWith('Ingredientes:')) {
+                        currentSection = 'ingredients';
+                        let content = line.replace('Ingredientes:', '').trim();
+                        if (content.length > 0) {
+                             recipe.ingredients.push(...content.split('\n').map(item => item.trim()).filter(item => item.length > 0));
+                        }
+                    } else if (line.startsWith('Preparación:')) {
+                        currentSection = 'preparation';
+                        const content = line.replace('Preparación:', '').trim();
+                        if (content.length > 0) {
+                            recipe.preparation.push(content);
+                        }
+                    } else if (line.startsWith('Consejos:')) {
+                        recipe.tips = line.replace('Consejos:', '').trim();
+                        currentSection = '';
+                    } else if (line.startsWith('Etiquetas:')) {
+                        recipe.tags = line.replace('Etiquetas:', '').split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag.length > 0);
+                        currentSection = '';
+                    } else if (line.startsWith('Enlace original:')) {
+                        recipe.link = line.replace('Enlace original:', '').trim();
+                        currentSection = '';
+                    } else if (currentSection === 'ingredients') {
+                        recipe.ingredients.push(...line.split('\n').map(item => item.trim()).filter(item => item.length > 0));
+                    } else if (currentSection === 'preparation') {
+                        recipe.preparation.push(line);
+                    }
+                }
+                
+                // Final cleaning
+                recipe.ingredients = recipe.ingredients.filter(item => item.length > 0);
+                recipe.preparation = recipe.preparation.filter(item => item.length > 0);
+
+                if (recipe.name) {
+                    recipes.push(recipe);
+                }
+            });
+
+            return recipes.filter(r => !r.name.includes("RECETATortitas")); // Filtrar la receta de ejemplo
+        };
+
+        let recipes = parseRecipes(rawText);
+
+        // Cargar favoritos del localStorage o inicializar un array vacío
+        let favorites = JSON.parse(localStorage.getItem('favoriteRecipes')) || [];
+        // Cargar recetas añadidas por el usuario
+        const userAddedRecipes = JSON.parse(localStorage.getItem('userAddedRecipes')) || [];
+        recipes = recipes.concat(userAddedRecipes);
+        let currentFilteredRecipes = [...recipes];
+        
+        // Referencias a los elementos del DOM
+        const searchInput = document.getElementById('search-input');
+        const sortSelect = document.getElementById('sort-select');
+        const tagFilterContainer = document.getElementById('tag-filter-container');
+        const tagFilterSelect = document.getElementById('tag-filter-select');
+        const recipesContainer = document.getElementById('recipes-container');
+        const recipeListView = document.getElementById('recipe-list-view');
+        const addRecipeView = document.getElementById('add-recipe-view');
+        const recipeDetailView = document.getElementById('recipe-detail-view');
+        const backButton = document.getElementById('back-button');
+        const favoriteButton = document.getElementById('favorite-button');
+        const recipeTitle = document.getElementById('recipe-title');
+        const recipeImage = document.getElementById('recipe-image');
+        const recipeIngredients = document.getElementById('recipe-ingredients');
+        const recipePreparation = document.getElementById('recipe-preparation');
+        const addRecipeButton = document.getElementById('add-recipe-button');
+        const fetchRecipeButton = document.getElementById('fetch-recipe-button');
+        const recipeUrlInput = document.getElementById('recipe-url-input');
+        const cancelAddButton = document.getElementById('cancel-add-button');
+        const addRecipeForm = document.getElementById('add-recipe-form');
+        const weeklyMenuButton = document.getElementById('weekly-menu-button');
+        const nutritionalButton = document.getElementById('nutritional-button');
+        const emailButton = document.getElementById('email-button');
+        const modalContainer = document.getElementById('modal-container');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const modalContentInner = document.getElementById('modal-content-inner');
+        const shoppingListButton = document.getElementById('shopping-list-button');
+        const variationsButton = document.getElementById('variations-button');
+        const originalLinkButton = document.getElementById('original-link-button');
+
+        // Función para guardar favoritos en localStorage
+        const saveFavorites = () => {
+            localStorage.setItem('favoriteRecipes', JSON.stringify(favorites));
+        };
+
+        // Función para guardar recetas añadidas por el usuario en localStorage
+        const saveUserAddedRecipes = () => {
+            localStorage.setItem('userAddedRecipes', JSON.stringify(recipes.filter(r => r.isUserAdded)));
+        };
+
+        // Función para renderizar la lista de recetas
+        const renderRecipeList = (filteredRecipes) => {
+            recipesContainer.innerHTML = '';
+            if (filteredRecipes.length === 0) {
+                recipesContainer.innerHTML = '<p class="text-gray-500 text-center">No se encontraron recetas.</p>';
+                return;
+            }
+
+            filteredRecipes.forEach((recipe, index) => {
+                const isFavorite = favorites.some(fav => fav.name === recipe.name);
+                const card = document.createElement('div');
+                card.className = 'relative bg-gray-50 p-4 rounded-lg shadow-sm cursor-pointer hover:bg-blue-50 transition duration-300 transform hover:scale-105';
+                
+                let tagsHtml = '';
+                if (recipe.tags && recipe.tags.length > 0) {
+                    tagsHtml = `<div class="mt-2 mb-2 flex flex-wrap">${recipe.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h3 class="recipe-title-bg text-xl" style="font-family: 'Playfair Display', serif;">${recipe.name}</h3>
+                        <button class="favorite-icon text-gray-400 hover:text-yellow-500 transition duration-200" data-name="${recipe.name}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ${isFavorite ? 'fill-current' : 'fill-transparent'}" viewBox="0 0 20 20" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                        </button>
+                    </div>
+                    ${tagsHtml}
+                `;
+                card.addEventListener('click', (e) => {
+                    // Evita que el clic en el icono active la tarjeta
+                    if (e.target.closest('.favorite-icon')) {
+                        toggleFavorite(recipe.name);
+                    } else {
+                        showRecipeDetail(recipe);
+                    }
+                });
+                recipesContainer.appendChild(card);
+            });
+        };
+
+        // Función para mostrar la vista de detalles de una receta
+        const showRecipeDetail = (recipe) => {
+            recipeListView.classList.add('hidden');
+            addRecipeView.classList.add('hidden');
+            recipeDetailView.classList.remove('hidden');
+
+            recipeTitle.textContent = recipe.name;
+            recipeImage.src = recipe.image;
+            
+            recipeIngredients.innerHTML = '';
+            recipe.ingredients.forEach(ingredient => {
+                if (ingredient.length > 0) {
+                    const li = document.createElement('li');
+                    li.textContent = ingredient;
+                    recipeIngredients.appendChild(li);
+                }
+            });
+
+            recipePreparation.innerHTML = '';
+            recipe.preparation.forEach(step => {
+                if (step.length > 0) {
+                    const li = document.createElement('li');
+                    li.textContent = step;
+                    recipePreparation.appendChild(li);
+                }
+            });
+            
+            // Mostrar u ocultar el botón de enlace original
+            if (recipe.link && recipe.link.length > 0) {
+                originalLinkButton.classList.remove('hidden');
+                originalLinkButton.href = recipe.link;
+            } else {
+                originalLinkButton.classList.add('hidden');
+            }
+
+            // Actualizar el estado del botón de favoritos
+            const isFavorite = favorites.some(fav => fav.name === recipe.name);
+            if (isFavorite) {
+                favoriteButton.classList.add('text-yellow-500');
+                favoriteButton.classList.remove('text-gray-400');
+                favoriteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 fill-current" viewBox="0 0 20 20" stroke="currentColor">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 01.993.921l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>`;
+            } else {
+                favoriteButton.classList.remove('text-yellow-500');
+                favoriteButton.classList.add('text-gray-400');
+                favoriteButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>`;
+            }
+            
+            favoriteButton.onclick = () => {
+                toggleFavorite(recipe.name);
+                // Re-render the detail view to update the button icon
+                showRecipeDetail(recipes.find(r => r.name === recipe.name));
+            };
+
+            // Setup buttons for Gemini API
+            shoppingListButton.onclick = () => generateShoppingList(recipe);
+            variationsButton.onclick = () => generateRecipeVariations(recipe);
+            nutritionalButton.onclick = () => estimateNutritionalValue(recipe);
+            emailButton.onclick = () => sendRecipeByEmail(recipe);
+        };
+
+        // Muestra el modal con el contenido generado
+        const showModal = (title, contentHtml) => {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-content-inner').innerHTML = contentHtml;
+            modalContainer.classList.remove('hidden');
+        };
+
+        // Oculta el modal
+        const closeModal = () => {
+            modalContainer.classList.add('hidden');
+            modalContentInner.innerHTML = '';
+        };
+
+        // Event listener para cerrar el modal
+        closeModalButton.onclick = closeModal;
+
+        // Genera la lista de la compra con el API de Gemini
+        const generateShoppingList = async (recipe) => {
+            showModal('Generando Lista de Compra...', '<p class="text-center mt-4">Por favor espera...</p>');
+            
+            const prompt = `Formatea la siguiente lista de ingredientes de receta en una lista de la compra limpia y organizada por categorías (ej. "Lácteos", "Verduras", "Carnes", etc.). Si no hay categorías claras, mantén la lista como está. Devuelve el resultado en formato JSON.
+            
+            Ingredientes de la receta "${recipe.name}":
+            ${recipe.ingredients.join('\n')}
+            `;
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "category": { "type": "STRING" },
+                                "items": {
+                                    "type": "ARRAY",
+                                    "items": { "type": "STRING" }
+                                }
+                            },
+                            "propertyOrdering": ["category", "items"]
+                        }
+                    }
+                }
+            };
+            
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const json = result.candidates[0].content.parts[0].text;
+                const shoppingList = JSON.parse(json);
+
+                let htmlContent = '<div class="space-y-4">';
+                if (shoppingList.length > 0) {
+                    shoppingList.forEach(category => {
+                        htmlContent += `<div><h4 class="font-semibold text-lg">${category.category}</h4><ul class="list-disc list-inside space-y-1">`;
+                        category.items.forEach(item => {
+                            htmlContent += `<li>${item}</li>`;
+                        });
+                        htmlContent += `</ul></div>`;
+                    });
+                } else {
+                    htmlContent = '<p>No se pudo generar una lista de compra organizada. Aquí está la lista de ingredientes sin formato:</p><ul>' + recipe.ingredients.map(item => `<li>${item}</li>`).join('') + '</ul>';
+                }
+                htmlContent += '</div>';
+                
+                showModal('Lista de Compra Generada', htmlContent);
+
+            } catch (error) {
+                console.error("Error al generar la lista de compra:", error);
+                showModal('Error', '<p class="text-center text-red-500">Ocurrió un error al generar la lista. Por favor, inténtalo de nuevo.</p>');
+            }
+        };
+
+        // Genera variaciones de la receta con el API de Gemini
+        const generateRecipeVariations = async (recipe) => {
+            showModal('Sugiriendo Variaciones...', '<p class="text-center mt-4">Por favor espera...</p>');
+
+            const prompt = `Basado en la siguiente receta, sugiere tres variaciones creativas, por ejemplo, cambiando un ingrediente principal, agregando una nueva salsa, o adaptándola a una dieta específica (ej. vegana, sin gluten). Para cada variación, proporciona un nombre y una breve descripción. Devuelve el resultado en formato JSON.
+            
+            Receta: "${recipe.name}"
+            Ingredientes: ${recipe.ingredients.join(', ')}
+            Preparación: ${recipe.preparation.join('. ')}
+            `;
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "variationName": { "type": "STRING" },
+                                "description": { "type": "STRING" }
+                            },
+                            "propertyOrdering": ["variationName", "description"]
+                        }
+                    }
+                }
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const json = result.candidates[0].content.parts[0].text;
+                const variations = JSON.parse(json);
+
+                let htmlContent = '<ul class="space-y-4">';
+                variations.forEach(variation => {
+                    htmlContent += `<li><h4 class="font-semibold text-lg">${variation.variationName}</h4><p>${variation.description}</p></li>`;
+                });
+                htmlContent += '</ul>';
+
+                showModal('Variaciones Sugeridas', htmlContent);
+
+            } catch (error) {
+                console.error("Error al generar las variaciones:", error);
+                showModal('Error', '<p class="text-center text-red-500">Ocurrió un error al generar las variaciones. Por favor, inténtalo de nuevo.</p>');
+            }
+        };
+
+        // Genera un menú semanal con el API de Gemini
+        const generateWeeklyMenu = async () => {
+            showModal('Generando Menú Semanal...', '<p class="text-center mt-4">Por favor espera...</p>');
+
+            const prompt = `Genera un menú semanal de 7 días, usando una receta diferente para cada día. Las recetas deben ser seleccionadas aleatoriamente de la siguiente lista. Devuelve el resultado en un formato JSON estructurado con el nombre del día de la semana y la receta asignada.
+            
+            Recetas disponibles: ${recipes.map(r => r.name).join(', ')}
+            `;
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "menu": {
+                                "type": "ARRAY",
+                                "items": {
+                                    "type": "OBJECT",
+                                    "properties": {
+                                        "day": { "type": "STRING" },
+                                        "recipe": { "type": "STRING" }
+                                    },
+                                    "propertyOrdering": ["day", "recipe"]
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const json = result.candidates[0].content.parts[0].text;
+                const menuData = JSON.parse(json);
+
+                let htmlContent = '<ul class="space-y-2">';
+                menuData.menu.forEach(item => {
+                    htmlContent += `<li><span class="font-semibold">${item.day}:</span> ${item.recipe}</li>`;
+                });
+                htmlContent += '</ul>';
+
+                showModal('Menú Semanal Generado', htmlContent);
+
+            } catch (error) {
+                console.error("Error al generar el menú semanal:", error);
+                showModal('Error', '<p class="text-center text-red-500">Ocurrió un error al generar el menú. Por favor, inténtalo de nuevo.</p>');
+            }
+        };
+
+        // Estima el valor nutricional de una receta con el API de Gemini
+        const estimateNutritionalValue = async (recipe) => {
+            showModal('Estimando Valor Nutricional...', '<p class="text-center mt-4">Por favor espera...</p>');
+
+            const prompt = `Estima el valor nutricional por porción (calorías, proteínas, grasas, carbohidratos) y el aporte de calcio de la siguiente receta. Proporciona también el porcentaje de la dosis diaria recomendada (RDA) para cada nutriente. Devuelve el resultado en formato JSON.
+            
+            Receta: "${recipe.name}"
+            Ingredientes: ${recipe.ingredients.join(', ')}
+            `;
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "calories": { "type": "STRING" },
+                            "calories_rda": { "type": "STRING" },
+                            "protein": { "type": "STRING" },
+                            "protein_rda": { "type": "STRING" },
+                            "fat": { "type": "STRING" },
+                            "fat_rda": { "type": "STRING" },
+                            "carbohydrates": { "type": "STRING" },
+                            "carbohydrates_rda": { "type": "STRING" },
+                            "calcium": { "type": "STRING" },
+                            "calcium_rda": { "type": "STRING" },
+                            "note": { "type": "STRING" }
+                        },
+                        "propertyOrdering": ["calories", "calories_rda", "protein", "protein_rda", "fat", "fat_rda", "carbohydrates", "carbohydrates_rda", "calcium", "calcium_rda", "note"]
+                    }
+                }
+            };
+            
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const json = result.candidates[0].content.parts[0].text;
+                const nutritionData = JSON.parse(json);
+
+                let htmlContent = `<ul class="list-disc list-inside space-y-2">
+                    <li><span class="font-semibold">Calorías:</span> ${nutritionData.calories} (${nutritionData.calories_rda})</li>
+                    <li><span class="font-semibold">Proteínas:</span> ${nutritionData.protein} (${nutritionData.protein_rda})</li>
+                    <li><span class="font-semibold">Grasas:</span> ${nutritionData.fat} (${nutritionData.fat_rda})</li>
+                    <li><span class="font-semibold">Carbohidratos:</span> ${nutritionData.carbohydrates} (${nutritionData.carbohydrates_rda})</li>
+                    <li><span class="font-semibold">Calcio:</span> ${nutritionData.calcium} (${nutritionData.calcium_rda})</li>
+                </ul>
+                <p class="mt-4 text-sm text-gray-500">${nutritionData.note}</p>`;
+                
+                showModal('Valor Nutricional', htmlContent);
+
+            } catch (error) {
+                console.error("Error al generar el valor nutricional:", error);
+                showModal('Error', '<p class="text-center text-red-500">Ocurrió un error al generar la estimación. Por favor, inténtalo de nuevo.</p>');
+            }
+        };
+
+        // Función para enviar la receta por correo electrónico
+        const sendRecipeByEmail = (recipe) => {
+            const subject = `Receta: ${recipe.name}`;
+            const body = `Hola,
+
+Aquí tienes la receta de "${recipe.name}":
+
+Ingredientes:
+- ${recipe.ingredients.join('\n- ')}
+
+Preparación:
+${recipe.preparation.map((step, index) => `${index + 1}. ${step}`).join('\n')}
+
+¡Espero que te guste!
+${recipe.link ? `\nVer receta original: ${recipe.link}` : ''}`;
+
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        };
+
+        // Función para volver a la vista de la lista de recetas
+        const showRecipeList = () => {
+            recipeListView.classList.remove('hidden');
+            addRecipeView.classList.add('hidden');
+            recipeDetailView.classList.add('hidden');
+            renderRecipeList(currentFilteredRecipes);
+        };
+        
+        // Función para alternar el estado de favorito de una receta
+        const toggleFavorite = (recipeName) => {
+            const isFavorite = favorites.some(fav => fav.name === recipeName);
+            if (isFavorite) {
+                favorites = favorites.filter(fav => fav.name !== recipeName);
+            } else {
+                const recipeToAdd = recipes.find(r => r.name === recipeName);
+                if (recipeToAdd) {
+                    favorites.push(recipeToAdd);
+                }
+            }
+            saveFavorites();
+            // Re-renderiza la lista para actualizar los iconos
+            renderRecipeList(currentFilteredRecipes);
+        };
+
+        // Event listener para el campo de búsqueda
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            currentFilteredRecipes = recipes.filter(recipe => {
+                const nameMatch = recipe.name.toLowerCase().includes(query);
+                const ingredientsMatch = recipe.ingredients.some(ingredient => ingredient.toLowerCase().includes(query));
+                const tagsMatch = recipe.tags && recipe.tags.some(tag => tag.toLowerCase().includes(query));
+                return nameMatch || ingredientsMatch || tagsMatch;
+            });
+            // Re-aplicar el ordenamiento actual después de filtrar
+            sortRecipes(sortSelect.value);
+        });
+        
+        // Event listener para el menú de clasificación
+        sortSelect.addEventListener('change', (e) => {
+            const sortOption = e.target.value;
+            if (sortOption === 'tags') {
+                tagFilterContainer.classList.remove('hidden');
+            } else {
+                tagFilterContainer.classList.add('hidden');
+                sortRecipes(sortOption);
+            }
+        });
+
+        tagFilterSelect.addEventListener('change', (e) => {
+            const tag = e.target.value;
+            if (tag) {
+                currentFilteredRecipes = recipes.filter(recipe => recipe.tags && recipe.tags.includes(tag));
+            } else {
+                currentFilteredRecipes = [...recipes];
+            }
+            renderRecipeList(currentFilteredRecipes);
+        });
+
+        // Función para clasificar las recetas
+        const sortRecipes = (sortOption) => {
+            let sortedRecipes = [...recipes];
+            if (sortOption === 'name-asc') {
+                sortedRecipes.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sortOption === 'name-desc') {
+                sortedRecipes.sort((a, b) => b.name.localeCompare(a.name));
+            } else if (sortOption === 'favorites') {
+                sortedRecipes = sortedRecipes.filter(recipe => favorites.some(fav => fav.name === recipe.name));
+            }
+            currentFilteredRecipes = sortedRecipes.filter(recipe => {
+                const query = searchInput.value.toLowerCase();
+                const nameMatch = recipe.name.toLowerCase().includes(query);
+                const ingredientsMatch = recipe.ingredients.some(ingredient => ingredient.toLowerCase().includes(query));
+                const tagsMatch = recipe.tags && recipe.tags.some(tag => tag.toLowerCase().includes(query));
+                return nameMatch || ingredientsMatch || tagsMatch;
+            });
+            renderRecipeList(currentFilteredRecipes);
+        };
+
+        // Event listeners para la navegación
+        backButton.addEventListener('click', showRecipeList);
+        addRecipeButton.addEventListener('click', () => {
+            recipeListView.classList.add('hidden');
+            recipeDetailView.classList.add('hidden');
+            addRecipeView.classList.remove('hidden');
+            addRecipeForm.reset();
+        });
+        cancelAddButton.addEventListener('click', showRecipeList);
+        weeklyMenuButton.addEventListener('click', generateWeeklyMenu);
+        
+        // Event listener para el formulario de nueva receta
+        addRecipeForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newRecipe = {
+                name: document.getElementById('recipe-name-input').value.trim(),
+                time: document.getElementById('recipe-time-input').value.trim(),
+                ingredients: document.getElementById('recipe-ingredients-input').value.split('\n').map(line => line.trim()).filter(line => line.length > 0),
+                preparation: document.getElementById('recipe-preparation-input').value.split('\n').map(line => line.trim()).filter(line => line.length > 0),
+                tags: document.getElementById('recipe-tags-input').value.split(',').map(tag => tag.trim().toLowerCase()).filter(tag => tag.length > 0),
+                isUserAdded: true
+            };
+            recipes.push(newRecipe);
+            saveUserAddedRecipes();
+            sortRecipes(sortSelect.value);
+            showRecipeList();
+        });
+        
+        // Event listener para el botón de fetch desde URL
+        fetchRecipeButton.addEventListener('click', async () => {
+            const url = recipeUrlInput.value.trim();
+            if (!url) {
+                showModal('Error', '<p class="text-center text-red-500">Por favor, introduce una URL válida.</p>');
+                return;
+            }
+
+            showModal('Extrayendo receta...', '<p class="text-center mt-4">Por favor espera...</p>');
+
+            const prompt = `Extrae el nombre, ingredientes, preparación y etiquetas (comida, cena, niños, etc.) de la receta de la siguiente URL. Si encuentras un un tiempo de preparación, incluyelo. Devuelve el resultado en formato JSON.
+            
+            URL: ${url}
+            `;
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "name": { "type": "STRING" },
+                            "time": { "type": "STRING" },
+                            "ingredients": {
+                                "type": "ARRAY",
+                                "items": { "type": "STRING" }
+                            },
+                            "preparation": {
+                                "type": "ARRAY",
+                                "items": { "type": "STRING" }
+                            },
+                            "tags": {
+                                "type": "ARRAY",
+                                "items": { "type": "STRING" }
+                            },
+                            "link": { "type": "STRING" }
+                        },
+                        "propertyOrdering": ["name", "time", "ingredients", "preparation", "tags", "link"]
+                    }
+                }
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const json = result.candidates[0].content.parts[0].text;
+                const newRecipe = JSON.parse(json);
+
+                // Populate the form fields with the fetched data
+                document.getElementById('recipe-name-input').value = newRecipe.name || '';
+                document.getElementById('recipe-time-input').value = newRecipe.time || '';
+                document.getElementById('recipe-ingredients-input').value = (newRecipe.ingredients || []).join('\n');
+                document.getElementById('recipe-preparation-input').value = (newRecipe.preparation || []).join('\n');
+                document.getElementById('recipe-tags-input').value = (newRecipe.tags || []).join(', ');
+                
+                closeModal();
+
+            } catch (error) {
+                console.error("Error al extraer la receta:", error);
+                showModal('Error', '<p class="text-center text-red-500">Ocurrió un error al extraer la receta de la URL. Por favor, inténtalo de nuevo.</p>');
+            }
+        });
+
+        // Inicializar la aplicación
+        sortRecipes('name-asc');
+    </script>
+</body>
+</html>
